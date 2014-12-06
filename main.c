@@ -29,7 +29,7 @@ int main( void ){
 	
 	// assegnazione delle condizioni iniziali (e stampa opzionale)
 	CI( rx, ry, vx, vy, N );
-	/*printCI( rx, ry, vx, vy, N );*/
+	printCI( rx, ry, vx, vy, N );
 	
 	return 0;
 }
