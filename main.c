@@ -8,7 +8,8 @@
 
 // DEFINIZIONE DI COSTANTI
 #define N 400
-#define ETA 0.05
+#define NP 17
+#define ETA 0.45
 #define PI M_PI //3.14159265358979
 
 // VARIABILI GLOBALI
@@ -17,6 +18,7 @@ FILE *cfPtr;
 FILE *cfPtrEn;
 double sigma;
 int count = 0;
+float press[ NP ];
 
 // PROTOTIPI DELLE FUNZIONI
 double speed_gen( void );
@@ -27,22 +29,27 @@ void evolve( double rx[ N ], double ry[ N ], double vx[ N ], double vy[ N ], dou
 void speed_refresh( double rx[ N ], double ry[ N ], double vx[ N ], double vy[ N ], int p1, int p2 ); // p1 e p2 sono risp. le posizioni delle due particelle che collidono
 double energy_compute( double vx[ N ], double vy[ N ] );
 double distance( double r1x, double r1y, double r2x, double r2y );
-int TheFunction( int nc );
+int pressure( int nc );
 
 int main( void ){
+	 
 
-	TheFunction( 500 );
+	
+	pressure( 500 );
+	
 
+	
 	return 0;
 }
 
-int TheFunction( int nc ){
+int pressure( int nc ){
 
 	/******************************************************* DICHIARAZIONE DELLE VARIABILI ***************************************************************************
 	******************************************************************************************************************************************************************
 	*****************************************************************************************************************************************************************/
 	int n = sqrt( N );
 
+	double Ei, Ef = 0;
 	// variabili per l'inizializzazione
 	double vx[ N ], vy[ N ], rx[ N ], ry[ N ];
 	sigma = sqrt( ( 4.0 * ETA )/( PI * N ) ); // diametro dei dischi
@@ -54,6 +61,14 @@ int TheFunction( int nc ){
 	//double r0x[ N ], r0y[ N ]; // coordinate dei punti durante l'urto, per calcolo velocità
 	// variabili per l'evoluzione
 	double t0 = 0; // tempo iniziale al passo i-esimo
+	
+	// puntatore a file velocità
+	FILE * cfPtrVel;
+	cfPtrVel = fopen( "speed.dat", "a" );
+	
+	// variabili per il calcolo della pressione
+	double delta_v = 0, v0x, v0y, intT = 0, P_mod = 0;
+	FILE *cfPtrPr;
 
 	// indici per cicli
 	int i, j, k, l, m;
@@ -62,12 +77,16 @@ int TheFunction( int nc ){
 	// gestione file
 	cfPtr = fopen( "data.dat", "w" );
 	cfPtrEn = fopen( "energy.dat", "w" );
+	cfPtrPr = fopen( "pressure.dat", "w" );
 
 	srand( time( NULL ) );// seme della funzione random
 	
 	/* printf( "\n#%g#\n", sigma ); */
 
-	// variabile contatore ti TheFunction
+	// variabile contatore di pressure( )
+	
+	
+	// imposto la differenza di velocità delle particelle che collidono a 0
 	
 	/***************************************************************** ASSEGNAZIONE DELLE COORDINATE *****************************************************************
 	******************************************************************************************************************************************************************
@@ -107,6 +126,18 @@ int TheFunction( int nc ){
 	}
 	
 	fprintf( cfPtrEn, "Passo\t\t\tEnergia\n\n" );
+	
+	// scalo le velocità in modo da normalizzare l'energia del sistema
+	Ei = energy_compute( vx, vy );
+	
+	for( i=0; i<N; i++ ){
+		
+			vx[ i ] = vx[ i ] / sqrt( Ei );
+			vy[ i ] = vy[ i ] / sqrt( Ei );
+	}
+	
+	
+	// inizia il ciclo di evoluzione del sistema
 	while( count <= nc ){
 
 	fprintf( cfPtrEn, "%d\t\t\t%f\n", count, energy_compute( vx, vy ) );
@@ -223,8 +254,8 @@ int TheFunction( int nc ){
 	else{
 		fprintf( cfPtr, "\t\t--- EVOLUZIONE ---\n\n" );
 		fprintf( cfPtr, "\t Calcolo la distanza fra le particelle che collidono dopo l'evoluzione:\t %f $ %f.\n",  sqrt( pow( rx[ P1 ] - rx[ P2 ], 2 ) + pow(ry[ P1 ] - ry[ P2 ], 2 ) ) - sigma, distance( rx[ P1 ], ry[ P1 ], rx[ P2 ], ry[ P2 ] ) - sigma );
-		fprintf( cfPtr, "\t Energia iniziale del sistema: %f.\n", energy_compute( vx, vy ) );
-
+		fprintf( cfPtr, "\t Energia iniziale del sistema: %f.\n", Ei = energy_compute( vx, vy ) );
+		
 		fprintf( cfPtr, "\n\n\n" );
 	}
 
@@ -233,21 +264,42 @@ int TheFunction( int nc ){
 		r0x[ k ] = rx[ k ];
 		r0y[ k ] = ry[ k ];
 	}*/
+	
+	// memorizzo le velocità delle particelle che collidono prima dell'urto per il calcolo di delta_v (per la pressione)
+	v0x = vx[ P1 ];
+	v0y = vy[ P1 ];
+
 	/************************************************************* AGGIORNAMENTO DELLE VELOCITA **********************************************************************
 	******************************************************************************************************************************************************************
 	******************************************************************************************************************************************************************
 	*****************************************************************************************************************************************************************/
 	speed_refresh( rx, ry, vx, vy,  P1, P2 );	
-
+	
 	if( cfPtr == NULL ) printf(" Memoria non disponibile!\n ");
 	else{
 		fprintf( cfPtr, "\t x1\t y1\t x2\t y2 \t vx1\t vy1\t vx2\t vy2\n" );
 		fprintf( cfPtr, "\t %.2f\t %.2f\t %.2f\t %.2f\t %.2f\t %.2f\t %.2f\t %.2f\n", rx[ P1 ], ry[ P1 ], rx[ P2 ], ry[ P2 ], vx[ P1 ], vy[ P1 ], vx[ P2 ], vy[ P2 ] );
 		fprintf( cfPtr, "\t Calcolo la distanza fra le particelle che collidono dopo l'evoluzione:\t %f $$ %f.\n",  sqrt( pow( rx[ P1 ] - rx[ P2 ], 2 ) + pow( ry[ P1 ] - ry[ P2 ], 2 ) ) - sigma, distance( rx[ P1 ], ry[ P1 ], rx[ P2 ], ry[ P2 ] ) - sigma );
 	
-		fprintf( cfPtr, "\t Energia finale del sistema: %f.\n", energy_compute( vx, vy ) );
+		Ef = energy_compute( vx, vy );
+		fprintf( cfPtr, "\t Energia iniziale - Energia finale del sistema: %f.\n",  fabs( Ef - Ei ) );
 		} // chiudo else - scrittura file
-
+	
+	
+	// calcolo la pressione
+	delta_v += sqrt( pow( ( v0x - vx[ P1 ] ), 2 ) + pow( ( v0y - vy[ P2 ] ), 2 ) );
+	intT += delta_t;
+	P_mod = 1.0 + ( sigma )/( 2.0 * Ef * intT ) * delta_v;
+	fprintf( cfPtrPr, "\n%f\t%f\t%f ", delta_v, intT,  P_mod );
+	
+	// ---> passo successivo
+	
+	if( count == nc ){
+		for( i=0; i<N; i++ ){
+			fprintf( cfPtrVel, "\n%f\t%f", vx[ i ], vy[ i ] );
+		}
+	}
+	
 	count++;
 	
 	/*
@@ -257,10 +309,12 @@ int TheFunction( int nc ){
 		}
 	}*/
 	
-	} // chiudo il while di TheFunction
+	
+	} // chiudo il while di pressure( )
+	
 	fclose( cfPtr );
 	fclose( cfPtrEn );
-	
+	fclose( cfPtrPr );
 	for( i=0; i<N; i++ ){
 		for( j=0; j<N; j++ ){
 			if( ( sqrt( pow((rx[i] - rx[j]), 2) + pow(( ry[i] - ry[ j ] ),2) )  - sigma && i!=j ) < - pow( 10, -10 ) ) printf("\nPasso %d: sovrapposizione: %f\nIndici: %d, %d",count,  sqrt( pow((rx[i] - rx[j]), 2)+ pow(( ry[i] - ry[ j ] ),2) ) - sigma, i, j );
