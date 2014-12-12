@@ -1,0 +1,43 @@
+# Given a file named "speed.dat", this script produces the histograms of the
+# speed distributions along the two coordinate axes. The file "speed.dat" must
+# have two columns of floats, of which the first contains the x-speeds while
+# the second contains the y-speeds. Type "python hist.py" to run.
+
+import matplotlib .pyplot as plt
+import matplotlib.mlab as mlab
+import numpy as np
+
+# carico i dati
+infile = open( '/Documents/LabFisComp/DischiRigidi/speed.dat', 'r' )
+data = np.loadtxt( '/Documents/LabFisComp/DischiRigidi/speed.dat' )
+vx, vy = data[:,0], data[:,1]
+
+# grafico delle vx - istogramma
+fig1 = plt.figure()
+nx, xbins, xpatches = plt.hist( vx, 50, normed = 1, color = 0.7 * np.array( [1.0, 1.0, 1.0] ), alpha = .5 )
+
+# best-fit line
+yx = mlab.normpdf( xbins, np.mean( vx ), np.std( vx ) )
+plt.plot( xbins, yx, 'r--', linewidth = 3 )
+
+# opzioni e visualizzazione grafico
+plt.xlabel( 'Speed along the $x$-axis' )
+plt.ylabel( 'Density [%]' )
+plt.title( 'Histogram of the speed distribution ( with normal fit )\n $\mu_x = %g, \quad\sigma_x = %g$' % ( np.mean( vx ), np.std( vx  ) ) )
+
+plt.savefig( 'histx.pdf', format = 'pdf' )
+
+# grafico delle vy - istogramma
+fig2 = plt.figure()
+ny, ybins, ypatches = plt.hist( vy, 50, normed = 1, color = 0.7 * np.array( [1.0, 1.0, 1.0] ), alpha = .5 )
+
+# best-fit line
+yy = mlab.normpdf( ybins, np.mean( vy ), np.std( vy ) )
+plt.plot( ybins, yy, 'r--', linewidth = 3 )
+
+# opzioni e visualizzazione grafico
+plt.title( 'Histogram of the speed distribution ( with normal fit )\n $\mu_y = %g, \quad\sigma_y = %g$' % ( np.mean( vy ), np.std( vy  ) ) )
+plt.xlabel( 'Speed along the $y$-axis' )
+plt.ylabel( 'Density [%]' )
+
+plt.savefig('histy.pdf', format = 'pdf' )
